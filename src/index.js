@@ -1,12 +1,32 @@
 const express = require("express")
+require("dotenv").config()
+const connectDb = require("./config/db")
+const userRouter = require("./router/userRouter")
+const cors = require("cors")
+const PORT = process.env.PORT || 9000
 const app = express()
-const PORT = 4000
+
+const corsOptions = {
+    origin:[
+        process.env.LOCAL_FRONTEND_URL,
+        process.env.FRONTEND_URL
+    ],
+    method:["GET","POST","PUT","PATCH","DELETE"]
+}
+app.use(cors(corsOptions))
 
 
-app.get("/", (req,res) =>{
-    res.send("Hello World")
-})
+app.use(express.json())
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`)
+app.use("/api/",userRouter)
+
+
+connectDb()
+.then(() => {
+    console.log("MongoDB connected successfully...")
+    app.listen(PORT, () => {
+        console.log(`server is running on ${PORT}`)
+    })
+}).catch((err) => {
+    console.log("mongodb connection failed" + err)
 })
