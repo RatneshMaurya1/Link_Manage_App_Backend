@@ -20,6 +20,10 @@ app.use(express.json())
 
 app.use("/api/",userRouter)
 
+app.use("/",(req,res) => {
+    res.send("Welcome to the home page")
+})
+
 
 connectDb()
 .then(() => {
