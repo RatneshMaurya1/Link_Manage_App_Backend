@@ -3,8 +3,11 @@ require("dotenv").config()
 const connectDb = require("./config/db")
 const userRouter = require("./router/userRouter")
 const cors = require("cors")
+const linkRouter = require("./router/linkRouter")
 const PORT = process.env.PORT || 9000
 const app = express()
+app.set("trust proxy", true);
+
 
 const corsOptions = {
     origin:[
@@ -19,6 +22,7 @@ app.use(cors(corsOptions))
 app.use(express.json())
 
 app.use("/api/",userRouter)
+app.use("/",linkRouter)
 
 app.use("/",(req,res) => {
     res.send("Welcome to the home page")
