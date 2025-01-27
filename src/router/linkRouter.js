@@ -53,9 +53,8 @@ linkRouter.post("/create", userAuth, async (req, res) => {
       .json({ error: "An error occurred while creating the short link." });
   }
 });
-const recentRequests = new Map(); 
 
-
+const recentRequests = new Map();
 linkRouter.get("/:shortLink", async (req, res) => {
   const { shortLink } = req.params;
   const ip = req.ip;
@@ -93,20 +92,19 @@ linkRouter.get("/:shortLink", async (req, res) => {
 
     await LinkDetails.create({
       ipAdress: ip,
-      userId: link.userId, 
+      userId: link.userId,
       userDevice: userDevice,
-      linkId: link._id, 
+      linkId: link._id,
       time: new Date() 
     });
-
+    console.log(`Count incremented. Redirecting to: ${link.originalLink}`);
     res.redirect(link.originalLink);
 
   } catch (error) {
-    console.error("Error updating count, creating LinkDetails entry, and redirecting:", error);
+    console.error("Error updating count and redirecting:", error);
     res.status(500).json({ error: "An error occurred while redirecting." });
   }
 });
-
 
 linkRouter.get("/user/links", userAuth, async (req, res) => {
   const user = req.user;
