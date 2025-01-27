@@ -1,6 +1,7 @@
 const express = require("express");
 const User = require("../models/user.schema");
 const Link = require("../models/link.schema");
+const LinkDetails = require("../models/linkDetails.schema")
 const linkRouter = express.Router();
 const userAuth = require("../middlewares/userAuth");
 const crypto = require("crypto");
@@ -52,16 +53,18 @@ linkRouter.post("/create", userAuth, async (req, res) => {
       .json({ error: "An error occurred while creating the short link." });
   }
 });
+const recentRequests = new Map(); 
+
 
 linkRouter.get("/:shortLink", async (req, res) => {
   const { shortLink } = req.params;
+  const ip = req.ip;
+  const userDevice = req.headers['user-agent'];
 
   try {
-    const link = await Link.findOneAndUpdate(
-      { shortLink: `${process.env.BACKEND_URL}/${shortLink}` },
-      { $inc: { count: 1 } }, 
-      { new: true }
-    );
+    const requestKey = `${ip}-${shortLink}`;
+
+    const link = await Link.findOne({ shortLink: `${process.env.LOCAL_BACKEND_URL}/${shortLink}` });
 
     if (!link) {
       return res.status(404).json({ error: "Short link not found." });
@@ -71,15 +74,38 @@ linkRouter.get("/:shortLink", async (req, res) => {
       return res.status(410).json({ error: "This link has expired." });
     }
 
-    console.log("Count incremented. Redirecting to:", link.originalLink);
+    if (recentRequests.has(requestKey)) {
+      const lastRequestTime = recentRequests.get(requestKey);
+      const currentTime = Date.now();
+
+      if (currentTime - lastRequestTime < 1000) {
+        console.log("Duplicate request detected, ignoring.");
+        return res.redirect(link.originalLink); 
+      }
+    }
+
+    recentRequests.set(requestKey, Date.now());
+
+    await Link.findOneAndUpdate(
+      { shortLink: `${process.env.LOCAL_BACKEND_URL}/${shortLink}` },
+      { $inc: { count: 1 } }
+    );
+
+    await LinkDetails.create({
+      ipAdress: ip,
+      userId: link.userId, 
+      userDevice: userDevice,
+      linkId: link._id, 
+      time: new Date() 
+    });
 
     res.redirect(link.originalLink);
+
   } catch (error) {
-    console.error("Error redirecting to original link:", error);
+    console.error("Error updating count, creating LinkDetails entry, and redirecting:", error);
     res.status(500).json({ error: "An error occurred while redirecting." });
   }
 });
-
 
 
 linkRouter.get("/user/links", userAuth, async (req, res) => {
