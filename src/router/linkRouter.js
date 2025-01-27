@@ -58,7 +58,7 @@ linkRouter.get("/:shortLink", async (req, res) => {
 
   try {
     const link = await Link.findOneAndUpdate(
-      { shortLink: `${process.env.LOCAL_BACKEND_URL}/${shortLink}` },
+      { shortLink: `${process.env.BACKEND_URL}/${shortLink}` },
       { $inc: { count: 1 } }, 
       { new: true }
     );
