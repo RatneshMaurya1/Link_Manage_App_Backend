@@ -120,17 +120,11 @@ userRouter.post("/signin", async (req, res) => {
 userRouter.post("/user/update", userAuth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { name, email, oldPassword, newPassword } = req.body;
+    const { name, email,phone} = req.body;
 
-    if (!name && !email && !oldPassword && !newPassword) {
+    if (!name && !email && !phone) {
       return res.status(400).json({
         message: "Please provide at least one field to update.",
-        status: "400",
-      });
-    }
-    if ((oldPassword && !newPassword) || (!oldPassword && newPassword)) {
-      return res.status(400).json({
-        message: "Both old password and new password are required.",
         status: "400",
       });
     }
@@ -172,32 +166,16 @@ userRouter.post("/user/update", userAuth, async (req, res) => {
       user.email = email;
     }
 
-    if (oldPassword && newPassword) {
-      const isPasswordCorrect = await bcrypt.compare(
-        oldPassword,
-        user.password
-      );
-      if (!isPasswordCorrect) {
+    if(phone){
+      const isValidPhone = /^\d{10}$/.test(phone)
+      if(!isValidPhone){
         return res.status(400).json({
-          message: "Incorrect previous password.",
+          message: "Phone number is invalid",
           status: "400",
-        });
+        }); 
       }
-
-      const passwordRegex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-      if (!passwordRegex.test(newPassword)) {
-        return res.status(400).json({
-          message:
-            "Password must be at least 8 characters long, include at least one uppercase letter, one lowercase letter, one number, and one special character.",
-          status: "400",
-        });
-      }
-      const hashPassword = await bcrypt.hash(newPassword, 10);
-
-      user.password = hashPassword;
+      user.phone = phone
     }
-
     await user.save();
 
     const newToken = JWT.sign({ email: user.email }, process.env.SECRET);
@@ -221,4 +199,13 @@ userRouter.post("/user/update", userAuth, async (req, res) => {
   }
 });
 
+
+userRouter.get("/user/data",userAuth, async (req, res) => {
+  try {
+    const user = req.user
+    return res.json({ message: "userData", user});
+  } catch (error) {
+    return res.status(400).json({ message: error.message, status: "400" });
+  }
+});
 module.exports = userRouter

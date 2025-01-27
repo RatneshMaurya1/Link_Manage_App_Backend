@@ -16,6 +16,7 @@ const linkDetailsSchema = new mongoose.Schema({
         },
         linkId:{
             type:mongoose.Schema.Types.ObjectId,
+            ref:"Link",
             required:true
         },
         browser:{

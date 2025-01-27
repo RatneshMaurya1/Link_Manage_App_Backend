@@ -22,8 +22,6 @@ linkRouter.post("/create", userAuth, async (req, res) => {
       return res.status(400).json({ error: "Original link is required." });
     }
 
-    const ipAddress = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
-    const userDevice = req.headers["user-agent"] || "Unknown";
 
     let shortLink;
     let isUnique = false;
@@ -115,6 +113,46 @@ linkRouter.get("/:shortLink", async (req, res) => {
   }
 });
 
+linkRouter.post("/updateLink/:id",userAuth,async(req,res) => {
+  const {id} = req.params
+  const { originalLink, remark, expire } = req.body;
+  try {
+    if(!originalLink && !remark && !expire){
+      return res.status(400).json({message:"Please provide atleast one field to update."})
+    }
+    const link = await Link.findOne({_id:id})
+    if(!link){
+      return res.status(404).json({message:"Link not found"})
+    }
+    if (originalLink) link.originalLink = originalLink;
+    if (remark) link.remark = remark;
+    if (expire) link.expire = expire;
+
+    await link.save()
+    res.status(200).json({message:"Link updated successfully.",link})
+  }catch (error) {
+    res.status(500).json({ error: "Error while updating Link data." });
+  }
+})
+
+linkRouter.delete("/deleteLink/:id", userAuth, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedLink = await Link.findByIdAndDelete(id);
+
+    if (!deletedLink) {
+      return res.status(404).json({ message: "Link not found" });
+    }
+
+    return res.status(200).json({ message: "Link deleted successfully." });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error while deleting the link." });
+  }
+});
+
+
 linkRouter.get("/user/links", userAuth, async (req, res) => {
   const user = req.user;
 
@@ -153,5 +191,22 @@ linkRouter.get("/user/links", userAuth, async (req, res) => {
     res.status(500).json({ error: "An error occurred while fetching links." });
   }
 });
+
+linkRouter.get("/links/details", userAuth, async (req, res) => {
+  const user = req.user;
+
+  try {
+    const linksData = await LinkDetails.find({ userId: user._id }).populate("linkId");
+
+
+
+    res.status(200).json({ links: linksData });
+  } catch (error) {
+    console.error("Error fetching user links:", error);
+    res.status(500).json({ error: "An error occurred while fetching links." });
+  }
+});
+
+
 
 module.exports = linkRouter;
