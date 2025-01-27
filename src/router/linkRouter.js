@@ -77,7 +77,7 @@ linkRouter.get("/:shortLink", async (req, res) => {
       const lastRequestTime = recentRequests.get(requestKey);
       const currentTime = Date.now();
 
-      if (currentTime - lastRequestTime < 1000) {
+      if (currentTime - lastRequestTime < 7000) {
         console.log("Duplicate request detected, ignoring.");
         return res.redirect(link.originalLink); 
       }
