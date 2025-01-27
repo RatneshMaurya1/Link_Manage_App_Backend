@@ -64,7 +64,7 @@ linkRouter.get("/:shortLink", async (req, res) => {
   try {
     const requestKey = `${ip}-${shortLink}`;
 
-    const link = await Link.findOne({ shortLink: `${process.env.LOCAL_BACKEND_URL}/${shortLink}` });
+    const link = await Link.findOne({ shortLink: `${process.env.BACKEND_URL}/${shortLink}` });
 
     if (!link) {
       return res.status(404).json({ error: "Short link not found." });
