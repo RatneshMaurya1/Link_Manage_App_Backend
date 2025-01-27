@@ -6,6 +6,8 @@ const linkRouter = express.Router();
 const userAuth = require("../middlewares/userAuth");
 const crypto = require("crypto");
 require("dotenv").config();
+const DeviceDetector = require('device-detector-js');
+const deviceDetector = new DeviceDetector();
 
 const generateShortLink = () => {
   return crypto.randomBytes(4).toString("hex");
@@ -59,6 +61,11 @@ linkRouter.get("/:shortLink", async (req, res) => {
   const { shortLink } = req.params;
   const ip = req.ip;
   const userDevice = req.headers['user-agent'];
+  const userAgent = req.headers['user-agent'];
+  const device = deviceDetector.parse(userAgent);
+  const deviceType = device.device.type;
+  const osName = device.os.name;
+  const browserName = device.client.name;
 
   try {
     const requestKey = `${ip}-${shortLink}`;
@@ -93,8 +100,10 @@ linkRouter.get("/:shortLink", async (req, res) => {
     await LinkDetails.create({
       ipAdress: ip,
       userId: link.userId,
-      userDevice: userDevice,
+      userDevice: osName,
+      browser:browserName,
       linkId: link._id,
+      deviceType,
       time: new Date() 
     });
     console.log(`Count incremented. Redirecting to: ${link.originalLink}`);
