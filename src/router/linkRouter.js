@@ -142,8 +142,9 @@ linkRouter.delete("/deleteLink/:id", userAuth, async (req, res) => {
     const deletedLink = await Link.findByIdAndDelete(id);
 
     if (!deletedLink) {
-      return res.status(404).json({ message: "Link not found" });
+      return res.status(200).json({ message: "Link not found" });
     }
+    await LinkDetails.findByIdAndDelete({linkId:id})
 
     return res.status(200).json({ message: "Link deleted successfully." });
   } catch (error) {
@@ -155,18 +156,27 @@ linkRouter.delete("/deleteLink/:id", userAuth, async (req, res) => {
 
 linkRouter.get("/user/links", userAuth, async (req, res) => {
   const user = req.user;
+  const { search } = req.query;  
 
   try {
-    const links = await Link.find({ userId: user._id });
+    let linksQuery = { userId: user._id };
+
+    if (search && search !== "null") {
+      linksQuery.remark = { $regex: search, $options: "i" }; 
+    }
+
+
+    const links = await Link.find(linksQuery);
+
 
     if (!links || links.length === 0) {
-      return res.status(404).json({ error: "No links found for this user." });
+      return res.status(200).json({ error: "No links found for this user." });
     }
 
     const linksWithStatus = links.map((link) => {
       const isExpired = link.expire && new Date(link.expire) < new Date();
       return {
-        _id:link._id,
+        _id: link._id,
         originalLink: link.originalLink,
         shortLink: link.shortLink,
         remark: link.remark,
@@ -191,6 +201,8 @@ linkRouter.get("/user/links", userAuth, async (req, res) => {
     res.status(500).json({ error: "An error occurred while fetching links." });
   }
 });
+
+
 
 linkRouter.get("/links/details", userAuth, async (req, res) => {
   const user = req.user;
