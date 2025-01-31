@@ -230,6 +230,39 @@ linkRouter.get("/links/details", userAuth, async (req, res) => {
     res.status(500).json({ error: "An error occurred while fetching links." });
   }
 });
+linkRouter.get("/link/allLinksdetails", userAuth, async (req, res) => {
+  const user = req.user;
+
+  try {
+
+
+    const linksData = await LinkDetails.find({ userId: user._id })
+      .populate("linkId")
+
+    res.status(200).json({
+      links: linksData,
+    });
+  } catch (error) {
+    console.error("Error fetching user links:", error);
+    res.status(500).json({ error: "An error occurred while fetching links." });
+  }
+});
+linkRouter.get("/link/allLink", userAuth, async (req, res) => {
+  const user = req.user;
+
+  try {
+
+
+    const linksData = await Link.find({ userId: user._id })
+
+    res.status(200).json({
+      links: linksData,
+    });
+  } catch (error) {
+    console.error("Error fetching user links:", error);
+    res.status(500).json({ error: "An error occurred while fetching links." });
+  }
+});
 
 
 
