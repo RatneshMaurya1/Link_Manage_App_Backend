@@ -137,6 +137,7 @@ linkRouter.post("/updateLink/:id",userAuth,async(req,res) => {
 
 linkRouter.delete("/deleteLink/:id", userAuth, async (req, res) => {
   const { id } = req.params;
+  console.log(id)
 
   try {
     const deletedLink = await Link.findByIdAndDelete(id);
@@ -144,7 +145,7 @@ linkRouter.delete("/deleteLink/:id", userAuth, async (req, res) => {
     if (!deletedLink) {
       return res.status(200).json({ message: "Link not found" });
     }
-    await LinkDetails.findByIdAndDelete({linkId:id})
+    await LinkDetails.deleteMany({ linkId: id });
 
     return res.status(200).json({ message: "Link deleted successfully." });
   } catch (error) {
@@ -156,22 +157,24 @@ linkRouter.delete("/deleteLink/:id", userAuth, async (req, res) => {
 
 linkRouter.get("/user/links", userAuth, async (req, res) => {
   const user = req.user;
-  const { search } = req.query;  
-
+  const { search, page = 1, limit = 7 } = req.query; 
+  
   try {
     let linksQuery = { userId: user._id };
 
     if (search && search !== "null") {
-      linksQuery.remark = { $regex: search, $options: "i" }; 
+      linksQuery.remark = { $regex: search, $options: "i" };
     }
 
-
-    const links = await Link.find(linksQuery);
-
+    const skip = (page - 1) * limit; 
+    const links = await Link.find(linksQuery).skip(skip).limit(Number(limit));
 
     if (!links || links.length === 0) {
       return res.status(200).json({ error: "No links found for this user." });
     }
+
+    const totalLinks = await Link.countDocuments(linksQuery);
+    const totalPages = Math.ceil(totalLinks / limit);
 
     const linksWithStatus = links.map((link) => {
       const isExpired = link.expire && new Date(link.expire) < new Date();
@@ -185,39 +188,49 @@ linkRouter.get("/user/links", userAuth, async (req, res) => {
         userDevice: link.userDevice,
         ipAdress: link.ipAdress,
         status: isExpired ? "inactive" : "active",
+        createdAt: link.createdAt,
       };
     });
 
-    const linksWithFinalStatus = linksWithStatus.map((link) => {
-      if (!link.expire) {
-        link.status = "active";
-      }
-      return link;
+    res.status(200).json({
+      links: linksWithStatus,
+      totalPages,
+      currentPage: page,
+      totalLinks, 
     });
-
-    res.status(200).json({ links: linksWithFinalStatus });
   } catch (error) {
     console.error("Error fetching user links:", error);
     res.status(500).json({ error: "An error occurred while fetching links." });
   }
 });
-
 
 
 linkRouter.get("/links/details", userAuth, async (req, res) => {
   const user = req.user;
+  const { page = 1, limit = 7 } = req.query;
 
   try {
-    const linksData = await LinkDetails.find({ userId: user._id }).populate("linkId");
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
 
+    const totalLinks = await LinkDetails.countDocuments({ userId: user._id });
 
+    const linksData = await LinkDetails.find({ userId: user._id })
+      .populate("linkId")
+      .sort({ time: -1 }) 
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
 
-    res.status(200).json({ links: linksData });
+    res.status(200).json({
+      links: linksData,
+      totalPages: Math.ceil(totalLinks / limitNumber),
+    });
   } catch (error) {
     console.error("Error fetching user links:", error);
     res.status(500).json({ error: "An error occurred while fetching links." });
   }
 });
+
 
 
 

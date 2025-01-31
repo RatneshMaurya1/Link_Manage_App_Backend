@@ -2,6 +2,8 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const JWT = require("jsonwebtoken");
 const User = require("../models/user.schema");
+const Link = require("../models/link.schema");
+const LinkDetails = require("../models/linkDetails.schema")
 const userAuth = require("../middlewares/userAuth");
 require("dotenv").config();
 const userRouter = express.Router();
@@ -206,6 +208,37 @@ userRouter.get("/user/data",userAuth, async (req, res) => {
     return res.json({ message: "userData", user});
   } catch (error) {
     return res.status(400).json({ message: error.message, status: "400" });
+  }
+});
+
+userRouter.delete("/user/delete", userAuth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found.",
+        status: "404",
+      });
+    }
+
+    await Link.deleteMany({userId})
+    await LinkDetails.deleteMany({ userId }); 
+
+    await User.findByIdAndDelete(userId);
+
+    return res.status(200).json({
+      message: "User deleted successfully.",
+      status: "200",
+    });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return res.status(500).json({
+      message: "An error occurred while deleting the user.",
+      status: "500",
+      error: error.message,
+    });
   }
 });
 module.exports = userRouter
