@@ -177,7 +177,15 @@ linkRouter.get("/user/links", userAuth, async (req, res) => {
     const totalPages = Math.ceil(totalLinks / limit);
 
     const linksWithStatus = links.map((link) => {
-      const isExpired = link.expire && new Date(link.expire) < new Date();
+      const expireUTC = link.expire ? new Date(link.expire).toISOString() : null;
+      const nowUTC = new Date().toISOString(); // Ensure comparison is in UTC
+    
+      console.log("Checking expiration:", {
+        expireUTC,
+        nowUTC,
+        isExpired: expireUTC && expireUTC < nowUTC,
+      });
+    
       return {
         _id: link._id,
         originalLink: link.originalLink,
@@ -187,10 +195,11 @@ linkRouter.get("/user/links", userAuth, async (req, res) => {
         count: link.count,
         userDevice: link.userDevice,
         ipAdress: link.ipAdress,
-        status: isExpired ? "inactive" : "active",
+        status: expireUTC && expireUTC < nowUTC ? "inactive" : "active",
         createdAt: link.createdAt,
       };
     });
+    
 
     res.status(200).json({
       links: linksWithStatus,
